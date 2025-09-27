@@ -1,0 +1,7 @@
+# 민감값
+.env
+
+# 빌드 폴더
+dist
+build
+node_modules
