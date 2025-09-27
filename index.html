@@ -1,1 +1,1385 @@
-"Hello World"
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>학생 일정 관리</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <style>
+    :root {
+      --main-bg: linear-gradient(120deg, #e0e7ff 0%, #f4f4f4 100%);
+      --card-bg: #fff;
+      --category-bg: #f3f6ff;
+      --border: #e3e9ff;
+      --shadow: 0 6px 32px rgba(80,110,255,0.10);
+      --text: #222;
+      --primary: #506eff;
+      --accent1: #4a90e2;
+      --accent2: #f5a623;
+      --accent3: #d0021b;
+      --accent4: #7ed957;
+      --accent5: #888;
+      --accent6: #9c27b0;
+      --deadline-soon-bg: #fff8e1;
+      --deadline-soon-border: #ffd54f;
+      --deadline-today-bg: #ffe0e0;
+      --deadline-today-border: #ff8a65;
+      --input-bg: #f9faff;
+      --input-border: #d0d8ff;  
+      --input-focus: #506eff;
+      --completed-bg: #f3ffe6;
+      --deleted-bg: #f7f7f7;
+      --disabled-bg: #ccc;
+      --disabled-text: #888;
+    }
+    body {
+      font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+      margin: 0;
+      background: var(--main-bg);
+      min-height: 100vh;
+      color: var(--text);
+      transition: background 0.3s, color 0.3s;
+    }
+    body.dark {
+      --main-bg: linear-gradient(120deg, #181c2b 0%, #23263a 100%);
+      --card-bg: #23263a;
+      --category-bg: #20243a;
+      --border: #2c3152;
+      --shadow: 0 6px 32px rgba(80,110,255,0.15);
+      --text: #e0e7ff;
+      --primary: #94aaff;
+      --accent1: #6ea4f7;
+      --accent2: #ffd54f;
+      --accent3: #ff8a65;
+      --accent4: #7ed957;
+      --accent5: #aaa;
+      --accent6: #ba68c8;
+      --deadline-soon-bg: #3b3a2a;
+      --deadline-soon-border: #ffd54f;
+      --deadline-today-bg: #4a2a2a;
+      --deadline-today-border: #ff8a65;
+      --input-bg: #23263a;
+      --input-border: #2c3152;
+      --input-focus: #94aaff;
+      --completed-bg: #2c3a2c;
+      --deleted-bg: #23263a;
+      --disabled-bg: #555;
+      --disabled-text: #aaa;
+    }
+    .header-fixed {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--main-bg);
+      padding: 0;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 10px rgba(80,110,255,0.09);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 70px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-left: 24px;
+    }
+    .student-selector {
+      display: flex;
+      gap: 8px;
+    }
+    .student-btn {
+      padding: 6px 16px;
+      border-radius: 10px;
+      background: #f0f0f0;
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .student-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .header-fixed h2 {
+      margin: 0;
+      color: var(--primary);
+      letter-spacing: 2px;
+      font-size: 2em;
+      font-weight: 800;
+    }
+    .dark-toggle-btn {
+      margin-right: 24px;
+      padding: 8px 18px;
+      border-radius: 12px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      font-weight: 700;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .dark-toggle-btn:hover {
+      background: #2940d3;
+    }
+    .auth-area {
+      display: flex;
+      align-items: center;
+      margin-left: auto; /* 로그인 버튼을 오른쪽으로 밀어냅니다 */
+      margin-right: 15px;
+      gap: 10px;
+    }
+    .auth-area button {
+      padding: 8px 15px;
+      border-radius: 10px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .google-signin-btn {
+      background: #4285f4; /* Google blue */
+      color: #fff;
+    }
+    .google-signin-btn:hover {
+      background: #357ae8;
+    }
+    .google-signout-btn {
+      background: #f44336; /* Red for sign out */
+      color: #fff;
+    }
+    .google-signout-btn:hover {
+      background: #d32f2f;
+    }
+
+    .student-section {
+      max-width: 500px;
+      margin: 0 auto 30px auto;
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      background: var(--card-bg);
+      padding: 18px 24px 18px 24px;
+      transition: background 0.3s, box-shadow 0.3s;
+      display: none;
+    }
+    .student-section.active {
+      display: block;
+    }
+    .category {
+      margin-top: 28px;
+      border-left: 7px solid var(--border);
+      background: var(--category-bg);
+      border-radius: 12px;
+      padding: 12px 12px 6px 18px;
+      box-shadow: 0 2px 8px rgba(80,110,255,0.03);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .category[id^="숙제"] { border-left-color: var(--accent1);}
+    .category[id^="공부"] { border-left-color: var(--accent2);}
+    .category[id^="시험"] { border-left-color: var(--accent3);}
+    .category[id^="completed"] { border-left-color: var(--accent4);}
+    .category[id^="deleted"] { border-left-color: var(--accent5);}
+    .category[id^="주말보강"] { border-left-color: var(--accent6);}
+    .category h3 {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.1em;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .task-list {
+      min-height: 10px;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+    .task {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 12px;
+      align-items: center;
+      border-radius: 14px;
+      background: var(--card-bg);
+      box-shadow: 0 2px 8px rgba(80,110,255,0.05);
+      border: 1.5px solid var(--border);
+      padding: 14px 14px 10px 14px;
+      transition: box-shadow 0.2s, background 0.2s, border 0.2s;
+      animation: fadeIn 0.3s;
+    }
+    .task:hover {
+      box-shadow: 0 8px 24px rgba(80,110,255,0.18);
+      transform: scale(1.025);
+    }
+    .task.deadline-soon {
+      background: var(--deadline-soon-bg);
+      border-color: var(--deadline-soon-border);
+    }
+    .task.deadline-today {
+      background: var(--deadline-today-bg);
+      border-color: var(--deadline-today-border);
+    }
+    .task label {
+      margin-right: 6px;
+      min-width: 72px;
+      font-weight: 500;
+      color: var(--primary);
+    }
+    .task span {
+      margin-right: 12px;
+      font-size: 1.05em;
+      color: var(--text);
+    }
+    .btn-area {
+      display: flex;
+      gap: 8px;
+      min-width: 90px;
+    }
+    .btn-area button {
+      padding: 5px 14px;
+      font-size: 0.95em;
+      border-radius: 8px;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(80,110,255,0.08);
+      transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+      cursor: pointer;
+    }
+    .btn-area button:hover {
+      background: #2940d3;
+      transform: translateY(-2px) scale(1.04);
+      box-shadow: 0 6px 18px rgba(80,110,255,0.18);
+    }
+    .btn-area button.delete-btn {
+      background: #f44336 !important;
+      box-shadow: 0 2px 6px rgba(244,67,54,0.13) !important;
+    }
+    .btn-area button.delete-btn:hover {
+      background: #b71c1c !important;
+      box-shadow: 0 6px 18px rgba(244,67,54,0.18) !important;
+    }
+    .btn-area button:disabled {
+      background: var(--disabled-bg);
+      color: var(--disabled-text);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    input, select, button {
+      padding: 6px;
+      font-size: 1em;
+      border-radius: 7px;
+      border: 1.2px solid var(--input-border);
+      background: var(--input-bg);
+      outline: none;
+      transition: border 0.15s, background 0.2s;
+    }
+    input:focus, select:focus {
+      border: 1.5px solid var(--input-focus);
+      background: #fff;
+    }
+    .request-section {
+      margin-top: 28px;
+      border-left: 7px solid var(--primary);
+      background: var(--category-bg);
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 2px 8px rgba(80,110,255,0.03);
+    }
+    .request-section h3 {
+      font-size: 1.1em;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 15px;
+    }
+    .request-textarea {
+      width: 100%;
+      min-height: 80px;
+      padding: 12px;
+      border: 1.5px solid var(--input-border);
+      border-radius: 10px;
+      background: var(--input-bg);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 1em;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    .request-textarea:focus {
+      border-color: var(--input-focus);
+      background: #fff;
+    }
+    .send-btn {
+      margin-top: 12px;
+      padding: 8px 20px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .send-btn:hover {
+      background: #2940d3;
+    }
+    .send-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .custom-popup-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.35);
+      z-index: 9998;
+    }
+    .custom-popup-box {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 8px 32px rgba(80,110,255,0.18);
+      padding: 32px 28px 22px 28px;
+      text-align: center;
+      z-index: 9999;
+      min-width: 240px;
+      color: var(--text);
+      font-size: 1.1em;
+    }
+    .custom-popup-btns {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .custom-popup-btns button {
+      padding: 7px 22px;
+      font-size: 1em;
+      border-radius: 8px;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+      background: var(--primary);
+      color: #fff;
+    }
+    .custom-confirm-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.35);
+      z-index: 9998;
+    }
+    .custom-confirm-box {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 8px 32px rgba(80,110,255,0.18);
+      padding: 32px 28px 22px 28px;
+      text-align: center;
+      z-index: 9999;
+      min-width: 240px;
+    }
+    .custom-confirm-msg {
+      margin-bottom: 22px;
+      font-size: 1.1em;
+      color: var(--text);
+    }
+    .custom-confirm-btns {
+      display: flex;
+      justify-content: center;
+      gap: 14px;
+    }
+    .custom-confirm-btns button {
+      padding: 7px 22px;
+      font-size: 1em;
+      border-radius: 8px;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .custom-confirm-cancel {
+      background: #eee;
+      color: var(--text);
+    }
+    .custom-confirm-ok {
+      background: var(--primary);
+      color: #fff;
+    }
+    @media (max-width: 600px) {
+      .header-left { margin-left: 10px; gap: 8px;}
+      .header-fixed h2 { font-size: 1.3em;}
+      .dark-toggle-btn { margin-right: 10px; padding: 7px 10px;}
+      .student-section {
+        padding: 14px 4vw 6px 4vw;
+        border-radius: 10px;
+      }
+      .task {
+        gap: 8px;
+        padding: 10px 6px 8px 6px;
+      }
+      .btn-area button {
+        font-size: 0.95em;
+        padding: 5px 10px;
+      }
+      .task label {
+        min-width: 54px;
+      }
+      .custom-popup-box,
+      .custom-confirm-box {
+        min-width: 70vw;
+        padding: 18px 8vw 14px 8vw;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header-fixed">
+    <div class="header-left">
+      <h2>학생 일정 관리</h2>
+      <div class="student-selector">
+        <button class="student-btn active" data-student="JH">JH</button>
+        <button class="student-btn" data-student="HJ">HJ</button>
+      </div>
+    </div>
+    <div class="auth-area">
+      <span id="userDisplayName" style="margin-right: 10px; color: var(--text);"></span>
+      <button class="google-signin-btn" id="googleSignInBtn">구글 로그인</button>
+      <button class="google-signout-btn" id="googleSignOutBtn" style="display: none;">로그아웃</button>
+    </div>
+    <button class="dark-toggle-btn" id="darkToggleBtn">다크모드</button>
+  </div>
+
+  <div class="student-section active" id="student-JH">
+    <div class="category" id="숙제-JH">
+      <h3><span>숙제</span> <button class="add-btn" data-student="JH" data-category="숙제">추가</button></h3>
+      <div class="task-list"></div>
+    </div>
+    <div class="category" id="공부-JH">
+      <h3><span>공부</span> <button class="add-btn" data-student="JH" data-category="공부">추가</button></h3>
+      <div class="task-list"></div>
+    </div>
+    <div class="category" id="시험-JH">
+      <h3><span>시험/수행평가</span> <button class="add-btn" data-student="JH" data-category="시험">추가</button></h3>
+      <div class="task-list"></div>
+    </div>
+    <div class="category" id="주말보강-JH">
+      <h3><span>주말보강</span> <button class="add-btn" data-student="JH" data-category="주말보강">추가</button></h3>
+      <div class="task-list"></div>
+    </div>
+    <div class="category" id="completed-JH">
+      <h3>
+        <span>완료</span>
+        <button class="toggle-btn" data-target="completed-JH">열기</button>
+      </h3>
+      <div class="task-list" style="display: none;"></div>
+    </div>
+    <div class="category" id="deleted-JH">
+      <h3>
+        <span>삭제</span>
+        <button class="toggle-btn" data-target="deleted-JH">열기</button>
+      </h3>
+      <div class="task-list" style="display: none;"></div>
+    </div>
+    <div class="request-section">
+      <h3>요청사항</h3>
+      <textarea class="request-textarea" id="request-JH" placeholder="요청사항을 입력해주세요..."></textarea>
+      <button class="send-btn" onclick="sendRequest('JH')">전송</button>
+    </div>
+  </div>
+
+  <div class="student-section" id="student-HJ">
+    <div class="category" id="숙제-HJ">
+      <h3><span>숙제</span> <button class="add-btn" data-student="HJ" data-category="숙제">추가</button></h3>
+      <div class="task-list"></div>
+    </div>
+    <div class="category" id="공부-HJ">
+      <h3><span>공부</span> <button class="add-btn" data-student="HJ" data-category="공부">추가</button></h3>
+      <div class="task-list"></div>
+    </div>
+    <div class="category" id="시험-HJ">
+      <h3><span>시험/수행평가</span> <button class="add-btn" data-student="HJ" data-category="시험">추가</button></h3>
+      <div class="task-list"></div>
+    </div>
+    <div class="category" id="주말보강-HJ">
+      <h3><span>주말보강</span> <button class="add-btn" data-student="HJ" data-category="주말보강">추가</button></h3>
+      <div class="task-list"></div>
+    </div>
+    <div class="category" id="completed-HJ">
+      <h3>
+        <span>완료</span>
+        <button class="toggle-btn" data-target="completed-HJ">열기</button>
+      </h3>
+      <div class="task-list" style="display: none;"></div>
+    </div>
+    <div class="category" id="deleted-HJ">
+      <h3>
+        <span>삭제</span>
+        <button class="toggle-btn" data-target="deleted-HJ">열기</button>
+      </h3>
+      <div class="task-list" style="display: none;"></div>
+    </div>
+    <div class="request-section">
+      <h3>요청사항</h3>
+      <textarea class="request-textarea" id="request-HJ" placeholder="요청사항을 입력해주세요..."></textarea>
+      <button class="send-btn" onclick="sendRequest('HJ')">전송</button>
+    </div>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getDatabase, ref, set, remove, onValue, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+
+  // 텔레그램 봇 설정
+  const TELEGRAM_BOT_TOKEN = '7760918691:AAErUKe2pQEZzHVzUwUQYneJwrM2YgzPGG4';
+  const TELEGRAM_CHAT_ID = '1869276713';
+
+  // 커스텀 팝업 함수 (alert 대체)
+  function customPopup(message) {
+    return new Promise(resolve => {
+      const overlay = document.createElement('div');
+      overlay.className = 'custom-popup-overlay';
+      const box = document.createElement('div');
+      box.className = 'custom-popup-box';
+      box.textContent = message;
+      const btnArea = document.createElement('div');
+      btnArea.className = 'custom-popup-btns';
+      const okBtn = document.createElement('button');
+      okBtn.textContent = '확인';
+      okBtn.onclick = () => {
+        document.body.removeChild(overlay);
+        document.body.removeChild(box);
+        resolve();
+      };
+      btnArea.appendChild(okBtn);
+      box.appendChild(btnArea);
+      document.body.appendChild(overlay);
+      document.body.appendChild(box);
+    });
+  }
+
+  // 요청사항 전송 함수
+  window.sendRequest = async function(student) {
+    const textarea = document.getElementById(`request-${student}`);
+    const message = textarea.value.trim();
+    if (!message) {
+      customPopup('요청사항을 입력해주세요.');
+      return;
+    }
+    const sendBtn = textarea.parentElement.querySelector('.send-btn');
+    sendBtn.disabled = true;
+    sendBtn.textContent = '전송 중...';
+    try {
+      const telegramMessage = `📝 **${student} 학생 요청사항**\n\n${message}\n\n📅 ${new Date().toLocaleString('ko-KR')}`;
+      const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: telegramMessage,
+          parse_mode: 'Markdown'
+        })
+      });
+      if (response.ok) {
+        await customPopup('요청사항이 전송되었습니다.');
+        textarea.value = '';
+      } else {
+        throw new Error('전송 실패');
+      }
+    } catch (error) {
+      console.error('텔레그램 전송 오류:', error);
+      await customPopup('전송에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      sendBtn.disabled = false;
+      sendBtn.textContent = '전송';
+    }
+  };
+
+  // 커스텀 confirm 함수
+  function customConfirm(message) {
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'custom-confirm-overlay';
+      const box = document.createElement('div');
+      box.className = 'custom-confirm-box';
+      const msg = document.createElement('div');
+      msg.className = 'custom-confirm-msg';
+      msg.textContent = message;
+      box.appendChild(msg);
+      const btnArea = document.createElement('div');
+      btnArea.className = 'custom-confirm-btns';
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'custom-confirm-cancel';
+      cancelBtn.textContent = '취소';
+      const okBtn = document.createElement('button');
+      okBtn.className = 'custom-confirm-ok';
+      okBtn.textContent = '확인';
+      btnArea.appendChild(cancelBtn);
+      btnArea.appendChild(okBtn);
+      box.appendChild(btnArea);
+      document.body.appendChild(overlay);
+      document.body.appendChild(box);
+      okBtn.onclick = () => {
+        document.body.removeChild(overlay);
+        document.body.removeChild(box);
+        resolve(true);
+      };
+      cancelBtn.onclick = () => {
+        document.body.removeChild(overlay);
+        document.body.removeChild(box);
+        resolve(false);
+      };
+      overlay.onclick = () => {
+        document.body.removeChild(overlay);
+        document.body.removeChild(box);
+        resolve(false);
+      };
+    });
+  }
+
+  // Firebase 설정
+  const firebaseConfig = {
+    apiKey: "AIzaSyBuhnhDDgnZkNMfFo3_0EsGrJzezKbTpZs",
+    authDomain: "study-fbdae.firebaseapp.com",
+    databaseURL: "https://study-fbdae-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "study-fbdae",
+    storageBucket: "study-fbdae.appspot.com",
+    messagingSenderId: "427130427133",
+    appId: "1:427130427133:web:6e836cbbcd134fcde7d094"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const auth = getAuth(app); // Firebase Auth 초기화
+
+  // 카테고리별 입력 항목 정의
+  const categoryFields = {
+    '숙제': [
+      { label: '과목', type: 'select', options: ['영어', '수학', '과학'] },
+      { label: '범위', type: 'text' },
+      { label: '마감일', type: 'date' }
+    ],
+    '공부': [
+      { label: '과목', type: 'text' },
+      { label: '범위', type: 'text' },
+      { label: '마감일', type: 'date' }
+    ],
+    '시험': [
+      { label: '과목', type: 'text' },
+      { label: '범위', type: 'text' },
+      { label: '마감일', type: 'date' }
+    ],
+    '주말보강': [
+      { label: '과목', type: 'select', options: ['영어', '수학', '과학'] },
+      { label: '날짜', type: 'date' },
+      { label: '시간', type: 'time' }
+    ],
+    '수행평가': [
+      { label: '내용', type: 'text' },
+      { label: '마감일', type: 'date' }
+    ]
+  };
+
+  // 학생 선택 기능
+  document.querySelectorAll('.student-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const student = btn.dataset.student;
+      document.querySelectorAll('.student-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.student-section').forEach(section => {
+        section.classList.remove('active');
+      });
+      document.getElementById(`student-${student}`).classList.add('active');
+    });
+  });
+
+  // 다크모드 토글
+  const darkBtn = document.getElementById('darkToggleBtn');
+  darkBtn.addEventListener('click', () => {
+    document.body.classList.toggle('dark');
+    darkBtn.textContent = document.body.classList.contains('dark') ? '라이트모드' : '다크모드';
+    localStorage.setItem('darkmode', document.body.classList.contains('dark') ? '1' : '0');
+  });
+  if (localStorage.getItem('darkmode') === '1') {
+    document.body.classList.add('dark');
+    darkBtn.textContent = '라이트모드';
+  }
+
+  // --- 구글 로그인 및 캘린더 관련 코드 시작 ---
+  const provider = new GoogleAuthProvider();
+  // 캘린더 이벤트 생성/수정/삭제 권한 요청
+  provider.addScope('https://www.googleapis.com/auth/calendar.events');
+
+  // 구글 로그인
+  document.getElementById('googleSignInBtn').addEventListener('click', async () => {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      // 로그인 성공 시, 캘린더 API 접근을 위한 토큰 저장 (임시, 실제 운영에서는 백엔드에서 관리 권장)
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const token = credential.accessToken;
+      const user = result.user;
+      console.log("구글 로그인 성공:", user.displayName, user.email);
+      await customPopup(`안녕하세요, ${user.displayName}님!`);
+      localStorage.setItem('googleAccessToken', token);
+      // 로그인 후 캘린더 기능 활성화 등의 추가 작업
+    } catch (error) {
+      console.error("구글 로그인 오류:", error);
+      let errorMessage = '구글 로그인에 실패했습니다. 다시 시도해주세요.';
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = '로그인 팝업이 닫혔습니다.';
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        errorMessage = '이미 로그인 요청이 진행 중입니다.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        errorMessage = '이메일/비밀번호 로그인이 활성화되지 않았습니다.'; // Google 로그인만 활성화해야 함
+      }
+      await customPopup(errorMessage);
+    }
+  });
+
+  // 구글 로그아웃
+  document.getElementById('googleSignOutBtn').addEventListener('click', async () => {
+    try {
+      await signOut(auth);
+      localStorage.removeItem('googleAccessToken');
+      await customPopup('로그아웃되었습니다.');
+    } catch (error) {
+      console.error("구글 로그아웃 오류:", error);
+      await customPopup('로그아웃에 실패했습니다. 다시 시도해주세요.');
+    }
+  });
+
+  // 인증 상태 변화 감지
+  onAuthStateChanged(auth, (user) => {
+    const signInBtn = document.getElementById('googleSignInBtn');
+    const signOutBtn = document.getElementById('googleSignOutBtn');
+    const userDisplayName = document.getElementById('userDisplayName');
+
+    if (user) {
+      signInBtn.style.display = 'none';
+      signOutBtn.style.display = 'inline-block';
+      userDisplayName.textContent = `${user.displayName}님`;
+    } else {
+      signInBtn.style.display = 'inline-block';
+      signOutBtn.style.display = 'none';
+      userDisplayName.textContent = '';
+    }
+  });
+
+  // 구글 캘린더 API 접근 토큰 가져오기
+  function getGoogleAccessToken() {
+    return localStorage.getItem('googleAccessToken');
+  }
+
+  // 구글 캘린더 이벤트 생성
+  async function createCalendarEvent(taskData, category, student) {
+    const accessToken = getGoogleAccessToken();
+    if (!accessToken) {
+      console.warn("구글 Access Token이 없습니다. 캘린더 이벤트를 생성할 수 없습니다.");
+      await customPopup('구글 캘린더에 일정을 추가하려면 로그인해주세요.');
+      return null;
+    }
+
+    let eventTitle = '';
+    let eventStart = '';
+    let eventEnd = '';
+    let description = '';
+
+    if (category === '주말보강') {
+      eventTitle = `${student} 학생 주말보강: ${taskData['과목']}`;
+      eventStart = `${taskData['날짜']}T${taskData['시간']}:00`;
+      // 보강 시간을 1시간으로 가정하거나, 필요에 따라 종료 시간 계산
+      const [hours, minutes] = taskData['시간'].split(':').map(Number);
+      const endDate = new Date(taskData['날짜']);
+      endDate.setHours(hours + 1, minutes, 0); // 1시간 뒤로 설정
+      eventEnd = endDate.toISOString().substring(0, 19); // YYYY-MM-DDTHH:mm:ss 형식
+      description = `과목: ${taskData['과목']}\n시간: ${taskData['시간']}`;
+    } else { // 숙제, 공부, 시험
+      const deadline = taskData['마감일'];
+      eventTitle = `${student} 학생 ${category}: ${taskData['과목'] || ''}`;
+      eventStart = `${deadline}T09:00:00`; // 마감일 오전 9시로 기본 설정
+      eventEnd = `${deadline}T10:00:00`; // 1시간 뒤로 설정
+      description = `과목: ${taskData['과목'] || ''}\n범위: ${taskData['범위'] || taskData['내용'] || ''}\n마감일: ${deadline}`;
+    }
+
+    const event = {
+      'summary': eventTitle,
+      'description': description,
+      'start': {
+        'dateTime': eventStart,
+        'timeZone': 'Asia/Seoul',
+      },
+      'end': {
+        'dateTime': eventEnd,
+        'timeZone': 'Asia/Seoul',
+      },
+      'reminders': {
+        'useDefault': false,
+        'overrides': [
+          { 'method': 'popup', 'minutes': 60 * 24 }, // 1일 전 알림
+          { 'method': 'popup', 'minutes': 30 }, // 30분 전 알림
+        ],
+      },
+    };
+
+    try {
+      const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(event),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('캘린더 이벤트 생성됨:', data);
+        return data.id; // 생성된 이벤트 ID 반환
+      } else {
+        const errorData = await response.json();
+        console.error('이벤트 생성 실패:', response.status, errorData);
+        if (response.status === 401) {
+          await customPopup('구글 캘린더 접근 권한이 만료되었거나 부족합니다. 다시 로그인해주세요.');
+        } else {
+          await customPopup('구글 캘린더 이벤트 생성에 실패했습니다.');
+        }
+        return null;
+      }
+    } catch (error) {
+      console.error('캘린더 이벤트 생성 중 오류 발생:', error);
+      await customPopup('캘린더 이벤트 생성 중 네트워크 오류가 발생했습니다.');
+      return null;
+    }
+  }
+
+  // 구글 캘린더 이벤트 업데이트
+  async function updateCalendarEvent(eventId, taskData, category, student) {
+    const accessToken = getGoogleAccessToken();
+    if (!accessToken || !eventId) {
+      console.warn("구글 Access Token 또는 이벤트 ID가 없습니다. 캘린더 이벤트를 업데이트할 수 없습니다.");
+      return false;
+    }
+
+    let eventTitle = '';
+    let eventStart = '';
+    let eventEnd = '';
+    let description = '';
+
+    if (category === '주말보강') {
+      eventTitle = `${student} 학생 주말보강: ${taskData['과목']}`;
+      eventStart = `${taskData['날짜']}T${taskData['시간']}:00`;
+      const [hours, minutes] = taskData['시간'].split(':').map(Number);
+      const endDate = new Date(taskData['날짜']);
+      endDate.setHours(hours + 1, minutes, 0);
+      eventEnd = endDate.toISOString().substring(0, 19);
+      description = `과목: ${taskData['과목']}\n시간: ${taskData['시간']}`;
+    } else {
+      const deadline = taskData['마감일'];
+      eventTitle = `${student} 학생 ${category}: ${taskData['과목'] || ''}`;
+      eventStart = `${deadline}T09:00:00`;
+      eventEnd = `${deadline}T10:00:00`;
+      description = `과목: ${taskData['과목'] || ''}\n범위: ${taskData['범위'] || taskData['내용'] || ''}\n마감일: ${deadline}`;
+    }
+
+    const event = {
+      'summary': eventTitle,
+      'description': description,
+      'start': {
+        'dateTime': eventStart,
+        'timeZone': 'Asia/Seoul',
+      },
+      'end': {
+        'dateTime': eventEnd,
+        'timeZone': 'Asia/Seoul',
+      },
+      'reminders': {
+        'useDefault': false,
+        'overrides': [
+          { 'method': 'popup', 'minutes': 60 * 24 },
+          { 'method': 'popup', 'minutes': 30 },
+        ],
+      },
+    };
+
+    try {
+      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(event),
+      });
+
+      if (response.ok) {
+        console.log('캘린더 이벤트 업데이트됨:', await response.json());
+        return true;
+      } else {
+        const errorData = await response.json();
+        console.error('이벤트 업데이트 실패:', response.status, errorData);
+        if (response.status === 401) {
+            await customPopup('구글 캘린더 접근 권한이 만료되었거나 부족합니다. 다시 로그인해주세요.');
+        } else {
+            await customPopup('구글 캘린더 이벤트 업데이트에 실패했습니다.');
+        }
+        return false;
+      }
+    } catch (error) {
+      console.error('캘린더 이벤트 업데이트 중 오류 발생:', error);
+      await customPopup('캘린더 이벤트 업데이트 중 네트워크 오류가 발생했습니다.');
+      return false;
+    }
+  }
+
+  // 구글 캘린더 이벤트 삭제
+  async function deleteCalendarEvent(eventId) {
+    const accessToken = getGoogleAccessToken();
+    if (!accessToken || !eventId) {
+      console.warn("구글 Access Token 또는 이벤트 ID가 없습니다. 캘린더 이벤트를 삭제할 수 없습니다.");
+      return false;
+    }
+
+    try {
+      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      if (response.ok) {
+        console.log('캘린더 이벤트가 성공적으로 삭제되었습니다.');
+        return true;
+      } else {
+        const errorData = await response.json();
+        console.error('이벤트 삭제 실패:', response.status, errorData);
+        if (response.status === 401) {
+            await customPopup('구글 캘린더 접근 권한이 만료되었거나 부족합니다. 다시 로그인해주세요.');
+        } else if (response.status === 404) {
+            console.warn('삭제하려는 캘린더 이벤트를 찾을 수 없습니다 (이미 삭제되었을 수 있음).');
+            return true; // 이미 삭제된 경우에도 성공으로 처리
+        } else {
+            await customPopup('구글 캘린더 이벤트 삭제에 실패했습니다.');
+        }
+        return false;
+      }
+    } catch (error) {
+      console.error('캘린더 이벤트 삭제 중 오류 발생:', error);
+      await customPopup('캘린더 이벤트 삭제 중 네트워크 오류가 발생했습니다.');
+      return false;
+    }
+  }
+  // --- 구글 로그인 및 캘린더 관련 코드 끝 ---
+
+
+  // Firebase 데이터 저장 함수 (기존)
+  function saveTask(student, category, taskId, taskData) {
+    return set(ref(db, `tasks/${student}/${category}/${taskId}`), taskData);
+  }
+
+  // Firebase 데이터 삭제 함수 (기존)
+  // **주의: deleteTask는 이제 캘린더 이벤트도 처리하도록 수정됩니다.**
+  async function deleteTask(student, category, taskId) {
+    const taskRef = ref(db, `tasks/${student}/${category}/${taskId}`);
+    // Firebase에서 항목을 삭제하기 전에 캘린더 이벤트 ID를 가져옵니다.
+    const snapshot = await get(taskRef);
+    const taskData = snapshot.val();
+
+    if (taskData && taskData.googleCalendarEventId) {
+      await deleteCalendarEvent(taskData.googleCalendarEventId);
+    }
+    return remove(taskRef);
+  }
+
+  // Firebase 항목 이동 함수 (기존)
+  // **주의: moveTask는 이제 캘린더 이벤트도 처리하도록 수정됩니다.**
+  async function moveTask(student, fromCategory, toCategory, taskId, taskData) {
+    let newGoogleEventId = taskData.googleCalendarEventId || null;
+
+    if (toCategory === 'completed' || toCategory === 'deleted') {
+      // '완료' 또는 '삭제'로 이동 시 캘린더 이벤트 삭제
+      if (newGoogleEventId) {
+        await deleteCalendarEvent(newGoogleEventId);
+      }
+      // 캘린더 이벤트 ID는 더 이상 필요 없으므로 삭제
+      const newData = { ...taskData };
+      delete newData.googleCalendarEventId;
+      await saveTask(student, toCategory, taskId, newData);
+    } else {
+      // 다른 카테고리로 복구 또는 이동 시 캘린더 이벤트 업데이트 또는 생성
+      // 이전에 googleCalendarEventId가 있었으면 업데이트, 없었으면 새로 생성
+      if (newGoogleEventId) {
+          await updateCalendarEvent(newGoogleEventId, taskData, toCategory, student);
+      } else {
+          // 새로 생성하거나 이전에 삭제된 이벤트였을 경우 재등록
+          const createdEventId = await createCalendarEvent(taskData, toCategory, student);
+          if (createdEventId) {
+              taskData.googleCalendarEventId = createdEventId;
+          }
+      }
+      await saveTask(student, toCategory, taskId, taskData);
+    }
+    await remove(ref(db, `tasks/${student}/${fromCategory}/${taskId}`)); // 원래 위치에서 삭제
+  }
+
+
+  // addTask 함수: 새 항목 추가 및 수정 지원 (수정됨)
+  function addTask(student, category, taskId = null, existingTaskData = {}, thisTaskDiv = null) {
+    const isEditMode = taskId !== null;
+    const taskDiv = document.createElement('div');
+    taskDiv.className = 'task';
+
+    const inputs = [];
+
+    // 카테고리별 입력 필드 생성
+    categoryFields[category].forEach(field => {
+      const label = document.createElement('label');
+      label.textContent = field.label + ": ";
+      let input;
+      if (field.type === 'select') {
+        input = document.createElement('select');
+        field.options.forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt;
+          option.textContent = opt;
+          input.appendChild(option);
+        });
+        input.value = existingTaskData[field.label] || '';
+      } else if (field.type === 'text') {
+        input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = field.label === '과목' ? '예: 수학' : (field.label === '범위' ? '예: 1~10쪽' : '예: 과학 실험 보고서');
+        input.value = existingTaskData[field.label] || '';
+      } else if (field.type === 'date') {
+        input = document.createElement('input');
+        input.type = 'date';
+        input.value = existingTaskData[field.label] || '';
+      } else if (field.type === 'time') {
+        input = document.createElement('input');
+        input.type = 'time';
+        input.value = existingTaskData[field.label] || '';
+      }
+      label.appendChild(input);
+      taskDiv.appendChild(label);
+      inputs.push({ label: field.label, input });
+    });
+
+    const btnArea = document.createElement('div');
+    btnArea.className = 'btn-area';
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = isEditMode ? '수정' : '입력';
+    if (isEditMode) {
+      saveBtn.disabled = true; // 수정 모드에서 초기 비활성화
+    }
+    saveBtn.onclick = async () => {
+      const newTaskData = {};
+      inputs.forEach(({ label, input }) => {
+        newTaskData[label] = input.value;
+      });
+      if (Object.values(newTaskData).some(val => !val)) {
+        customPopup('모든 항목을 입력해주세요.');
+        return;
+      }
+      const finalTaskId = taskId || Date.now().toString();
+      try {
+        // 구글 캘린더 이벤트 처리
+        let currentGoogleEventId = existingTaskData.googleCalendarEventId || null;
+
+        if (currentGoogleEventId && isEditMode) {
+          // 기존 항목 수정 시 캘린더 이벤트 업데이트
+          await updateCalendarEvent(currentGoogleEventId, newTaskData, category, student);
+        } else {
+          // 새 항목 추가 또는 기존 항목에 캘린더 이벤트가 없었을 경우 생성
+          const newEventId = await createCalendarEvent(newTaskData, category, student);
+          if (newEventId) {
+            newTaskData.googleCalendarEventId = newEventId; // 이벤트 ID 저장
+          }
+        }
+
+        await saveTask(student, category, finalTaskId, newTaskData);
+        taskDiv.remove(); // 입력/수정 폼 제거
+        if (isEditMode && thisTaskDiv) {
+          thisTaskDiv.remove(); // 기존 항목 제거 (renderTasks가 새로 그림)
+        }
+      } catch (e) {
+        customPopup('저장 실패');
+        console.error(e);
+      }
+    };
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = '취소';
+    cancelBtn.onclick = () => {
+      taskDiv.remove(); // 입력/수정 폼 제거
+      if (isEditMode && thisTaskDiv) {
+        thisTaskDiv.style.display = ''; // 기존 항목 복원
+      }
+    };
+    btnArea.appendChild(saveBtn);
+    btnArea.appendChild(cancelBtn);
+    taskDiv.appendChild(btnArea);
+
+    // 수정 모드에서 입력값 변경 감지
+    if (isEditMode) {
+      const checkChanges = () => {
+        const hasChanges = inputs.some(({ label, input }) => input.value !== (existingTaskData[label] || ''));
+        saveBtn.disabled = !hasChanges;
+      };
+      inputs.forEach(({ input }) => {
+        input.addEventListener('input', checkChanges);
+      });
+      // 초기 체크
+      checkChanges();
+    }
+
+    if (isEditMode && thisTaskDiv) {
+      // 수정 모드: 기존 항목 숨기고 편집 폼 삽입
+      thisTaskDiv.style.display = 'none';
+      thisTaskDiv.parentNode.insertBefore(taskDiv, thisTaskDiv.nextSibling);
+    } else {
+      // 추가 모드: 리스트 맨 위에 추가
+      document.querySelector(`#${category}-${student} .task-list`).prepend(taskDiv);
+    }
+  }
+
+  function getDeadlineClass(deadline) {
+    if (!deadline) return '';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const d = new Date(deadline);
+    d.setHours(0, 0, 0, 0);
+
+    if (d.getTime() === today.getTime()) return 'deadline-today';
+    const diff = (d - today) / (1000 * 60 * 60 * 24);
+    if (diff > 0 && diff <= 3) return 'deadline-soon';
+    return '';
+  }
+
+  function renderTasks(student, category, tasks) {
+    const container = document.querySelector(`#${category}-${student} .task-list`);
+    if (!container) return;
+
+    // 카테고리 헤더에 항목 수 표시
+    const h3 = document.querySelector(`#${category}-${student} h3 span`);
+    if (h3) {
+      h3.textContent = h3.textContent.replace(/\s*\(\d+\)/, '');
+      const count = tasks ? Object.keys(tasks).length : 0;
+      if (['deleted', 'completed', '숙제', '공부', '시험', '주말보강'].includes(category)) {
+        h3.textContent += ` (${count})`;
+      }
+    }
+
+    container.innerHTML = '';
+    if (!tasks) return;
+
+    let taskArray = Object.entries(tasks);
+
+    // 정렬 로직
+    if (['숙제', '공부', '시험', '주말보강'].includes(category)) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      taskArray.sort((a, b) => {
+        const dateField = category === '주말보강' ? '날짜' : '마감일';
+        const aDateStr = a[1][dateField];
+        const bDateStr = b[1][dateField];
+        const aDate = aDateStr ? new Date(aDateStr) : null;
+        const bDate = bDateStr ? new Date(bDateStr) : null;
+
+        // 유효하지 않은 날짜 처리
+        if (!aDate || isNaN(aDate.getTime())) return 1; // 유효하지 않은 날짜는 리스트 끝으로
+        if (!bDate || isNaN(bDate.getTime())) return -1;
+
+        // 오늘 날짜와 비교
+        aDate.setHours(0, 0, 0, 0);
+        bDate.setHours(0, 0, 0, 0);
+
+        // 마감일이 지난 항목(오늘보다 이전) 우선, 과거순(오름차순)
+        const aIsPast = aDate.getTime() < today.getTime();
+        const bIsPast = bDate.getTime() < today.getTime();
+
+        if (aIsPast && !bIsPast) return -1; // a가 과거면 a 우선
+        if (!aIsPast && bIsPast) return 1;  // b가 과거면 b 우선
+        if (aIsPast && bIsPast) {
+          return aDate.getTime() - bDate.getTime(); // 둘 다 과거면 과거순(오름차순)
+        }
+
+        // 오늘 마감인 항목
+        if (aDate.getTime() === today.getTime() && bDate.getTime() !== today.getTime()) return -1;
+        if (aDate.getTime() !== today.getTime() && bDate.getTime() === today.getTime()) return 1;
+
+        // 마감일이 3일 이내인 항목
+        const aDiff = (aDate - today) / (1000 * 60 * 60 * 24);
+        const bDiff = (bDate - today) / (1000 * 60 * 60 * 24);
+        const aSoon = aDiff > 0 && aDiff <= 3;
+        const bSoon = bDiff > 0 && bDiff <= 3;
+
+        if (aSoon && !bSoon) return -1;
+        if (!aSoon && bSoon) return 1;
+
+        // 그 외 미래 마감일은 오름차순
+        return aDate.getTime() - bDate.getTime();
+      });
+    } else if (['completed', 'deleted'].includes(category)) {
+      // 완료/삭제 항목은 taskId(타임스탬프)를 기준으로 내림차순 정렬 (최근 순)
+      taskArray.sort((a, b) => parseInt(b[0]) - parseInt(a[0]));
+    }
+
+    taskArray.forEach(([taskId, taskData]) => {
+      const taskDiv = document.createElement('div');
+      taskDiv.classList.add('task');
+      taskDiv.dataset.taskId = taskId;
+
+      // 마감일 스타일 적용
+      let deadlineClass = '';
+      if (['숙제', '공부', '시험'].includes(category)) {
+        deadlineClass = getDeadlineClass(taskData['마감일']);
+      } else if (category === '주말보강') {
+        deadlineClass = getDeadlineClass(taskData['날짜']);
+      }
+      if (deadlineClass) taskDiv.classList.add(deadlineClass);
+
+      // 요약 텍스트 생성
+      const summarySpan = document.createElement('span');
+      if (category === '주말보강') {
+        summarySpan.textContent = `${taskData['과목'] || ''} / ${taskData['날짜'] || ''} / ${taskData['시간'] || ''}`;
+      } else {
+        summarySpan.textContent = `${taskData['과목'] || ''} / ${taskData['범위'] || taskData['내용'] || ''} / ${taskData['마감일'] || taskData['날짜'] || ''}`;
+      }
+      taskDiv.appendChild(summarySpan);
+
+      // 버튼 영역
+      const btnArea = document.createElement('div');
+      btnArea.className = 'btn-area';
+
+      if (category === 'completed' || category === 'deleted') {
+        const restoreBtn = document.createElement('button');
+        restoreBtn.textContent = '복구';
+        restoreBtn.onclick = async () => {
+          if (!taskData.originalCategory) {
+            customPopup('복구할 원래 카테고리 정보가 없습니다.');
+            return;
+          }
+          const originalCategory = taskData.originalCategory;
+          const newTaskData = { ...taskData };
+          delete newTaskData.originalCategory; // 복구 시 originalCategory는 제거
+          try {
+            await moveTask(student, category, originalCategory, taskId, newTaskData);
+          } catch (e) {
+            customPopup('복구 실패');
+            console.error(e);
+          }
+        };
+        btnArea.appendChild(restoreBtn);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '삭제';
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.onclick = async () => {
+          const confirmed = await customConfirm('이 항목을 영구적으로 삭제하시겠습니까?');
+          if (confirmed) {
+            try {
+              await deleteTask(student, category, taskId);
+            } catch (e) {
+              customPopup('삭제 실패');
+              console.error(e);
+            }
+          }
+        };
+        btnArea.appendChild(deleteBtn);
+      } else {
+        const editBtn = document.createElement('button');
+        editBtn.textContent = '수정';
+        editBtn.onclick = () => {
+          addTask(student, category, taskId, taskData, taskDiv);
+        };
+        btnArea.appendChild(editBtn);
+
+        const completeBtn = document.createElement('button');
+        completeBtn.textContent = '완료';
+        completeBtn.onclick = async () => {
+          try {
+            // 완료 시 originalCategory를 저장하여 복구 시 원래 카테고리로 돌아갈 수 있도록 함
+            await moveTask(student, category, 'completed', taskId, { ...taskData, originalCategory: category });
+          } catch (e) {
+            customPopup('완료 처리 실패');
+            console.error(e);
+          }
+        };
+        btnArea.appendChild(completeBtn);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '삭제';
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.onclick = async () => {
+          try {
+            // 삭제 시 originalCategory를 저장하여 복구 시 원래 카테고리로 돌아갈 수 있도록 함
+            await moveTask(student, category, 'deleted', taskId, { ...taskData, originalCategory: category });
+          } catch (e) {
+            customPopup('삭제 처리 실패');
+            console.error(e);
+          }
+        };
+        btnArea.appendChild(deleteBtn);
+      }
+
+      taskDiv.appendChild(btnArea);
+      container.appendChild(taskDiv);
+    });
+  }
+
+  function loadAllTasks(student) {
+    const categories = ['숙제', '공부', '시험', '주말보강', 'completed', 'deleted'];
+    categories.forEach(category => {
+      const tasksRef = ref(db, `tasks/${student}/${category}`);
+      onValue(tasksRef, snapshot => {
+        const data = snapshot.val();
+        renderTasks(student, category, data);
+      });
+    });
+  }
+
+  document.querySelectorAll('.add-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const student = btn.dataset.student;
+      const category = btn.dataset.category;
+      addTask(student, category);
+    });
+  });
+
+  document.querySelectorAll('.toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.target;
+      const container = document.querySelector(`#${targetId} .task-list`);
+      if (!container) return;
+      const isHidden = container.style.display === 'none';
+      if (isHidden) {
+        container.style.display = 'block';
+        btn.textContent = '닫기';
+      } else {
+        container.style.display = 'none';
+        btn.textContent = '열기';
+      }
+    });
+  });
+
+  // 초기 로드
+  loadAllTasks('JH');
+  loadAllTasks('HJ');
+</script>
+</body>
+</html>
