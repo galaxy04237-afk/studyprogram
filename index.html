@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -540,13 +539,11 @@
       <button class="send-btn" onclick="sendRequest('HJ')">전송</button>
     </div>
   </div>
-
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
   import { getDatabase, ref, set, remove, onValue, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
   import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
-
-  // 텔레그램 봇 설정
+   // 텔레그램 봇 설정
   const TELEGRAM_BOT_TOKEN = '7760918691:AAErUKe2pQEZzHVzUwUQYneJwrM2YgzPGG4';
   const TELEGRAM_CHAT_ID = '1869276713';
 
@@ -610,8 +607,7 @@
       sendBtn.textContent = '전송';
     }
   };
-
-  // 커스텀 confirm 함수
+ // 커스텀 confirm 함수
   function customConfirm(message) {
     return new Promise((resolve) => {
       const overlay = document.createElement('div');
@@ -653,20 +649,24 @@
     });
   }
 
-  // Firebase 설정
-  const firebaseConfig = {
-    apiKey: "AIzaSyBuhnhDDgnZkNMfFo3_0EsGrJzezKbTpZs",
-    authDomain: "study-fbdae.firebaseapp.com",
-    databaseURL: "https://study-fbdae-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "study-fbdae",
-    storageBucket: "study-fbdae.appspot.com",
-    messagingSenderId: "427130427133",
-    appId: "1:427130427133:web:6e836cbbcd134fcde7d094"
-  };
+  // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const auth = getAuth(app); // Firebase Auth 초기화
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBppPn-lxNx5gfx8ClQWF5JMHX8qyV1YuM",
+  authDomain: "calendarz-2372a.firebaseapp.com",
+  projectId: "calendarz-2372a",
+  storageBucket: "calendarz-2372a.firebasestorage.app",
+  messagingSenderId: "99022111263",
+  appId: "1:99022111263:web:67b368a179fef601764b2a"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
   // 카테고리별 입력 항목 정의
   const categoryFields = {
@@ -1383,3 +1383,4 @@
 </script>
 </body>
 </html>
+const auth = getAuth(app); // Firebase Auth 초기화
