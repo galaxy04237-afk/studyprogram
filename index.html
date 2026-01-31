@@ -5,7 +5,7 @@
   <title>지헌이의 갓생살기</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Supabase -->
+  <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -49,6 +49,7 @@
       border-radius: 12px;
       margin-bottom: 12px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      white-space: pre-line;
     }
     input {
       width: 100%;
@@ -63,6 +64,7 @@
       border: none;
       cursor: pointer;
       margin-right: 6px;
+      margin-top: 6px;
     }
     .add { background: #5b6cff; color: white; }
     .done { background: #4caf50; color: white; }
@@ -84,94 +86,165 @@
 <div class="container" id="content"></div>
 
 <script>
-/* 🔴 여기에 Supabase 정보 넣기 */
+/* 🔑 Supabase 설정 */
 const SUPABASE_URL = "https://kbddlzcczmjzxgpqgvaj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_57nMVqngDBZ3updYJxnQyA_SBS83Dov";
 
-const supabase = supabaseJs.createClient(
+const supabase = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 );
 
-let currentTab = 'homework';
-let data = {
-  homework: [], study: [], exam: [], weekend: [], done: []
+/* 상태 */
+let currentTab = "homework";
+const data = {
+  homework: [],
+  study: [],
+  exam: [],
+  weekend: [],
+  done: []
 };
 
-async function loadData() {
-  const { data: rows } = await supabase.from('planner').select('*');
-  data = { homework: [], study: [], exam: [], weekend: [], done: [] };
-  rows.forEach(r => data[r.type].push(r));
-  render();
-}
-
-function switchTab(tab, el) {
+/* 탭 전환 */
+function switchTab(tab, btn) {
   currentTab = tab;
-  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
+  document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
   render();
 }
 
-async function addItem(fields) {
-  const item = { type: currentTab };
-  fields.forEach(f => item[f] = document.getElementById(f).value);
+/* Supabase 로드 */
+async function loadData() {
+  const { data: rows } = await supabase
+    .from("planner")
+    .select("*")
+    .order("created_at");
 
-  await supabase.from('planner').insert(item);
-  loadData();
+  rows.forEach(row => {
+    data[row.category].push({ ...row.content, _id: row.id });
+  });
+  render();
 }
 
-async function moveToDone(id) {
-  await supabase.from('planner').update({ type: 'done' }).eq('id', id);
-  loadData();
+/* 추가 */
+async function addItem(item) {
+  const { data: row } = await supabase
+    .from("planner")
+    .insert({ category: currentTab, content: item })
+    .select()
+    .single();
+
+  data[currentTab].push({ ...item, _id: row.id });
+  render();
 }
 
-async function deleteItem(id) {
-  await supabase.from('planner').delete().eq('id', id);
-  loadData();
+/* 삭제 */
+async function deleteItem(index) {
+  const id = data[currentTab][index]._id;
+  await supabase.from("planner").delete().eq("id", id);
+  data[currentTab].splice(index, 1);
+  render();
 }
 
+/* 완료 */
+async function completeItem(index) {
+  const item = data[currentTab][index];
+  await supabase.from("planner").delete().eq("id", item._id);
+  await supabase.from("planner").insert({
+    category: "done",
+    content: item
+  });
+  data.done.push(item);
+  data[currentTab].splice(index, 1);
+  render();
+}
+
+/* 렌더 */
 function render() {
-  const c = document.getElementById('content');
-  c.innerHTML = '';
+  const c = document.getElementById("content");
+  c.innerHTML = "";
 
-  if (currentTab !== 'done') {
-    const form = document.createElement('div');
-    form.className = 'card';
+  if (currentTab !== "done") {
+    const form = document.createElement("div");
+    form.className = "card";
 
-    if (currentTab === 'homework' || currentTab === 'exam') {
+    if (currentTab === "homework") {
       form.innerHTML = `
         <input id="subject" placeholder="과목">
         <input id="range" placeholder="범위">
         <input id="date" type="date">
-        <button class="btn add" onclick="addItem(['subject','range','date'])">추가</button>
+        <button class="btn add">추가</button>
       `;
+      form.querySelector(".add").onclick = () =>
+        addItem({ 과목: subject.value, 범위: range.value, 마감: date.value });
     }
 
-    if (currentTab === 'study') {
+    if (currentTab === "study") {
       form.innerHTML = `
         <input id="subject" placeholder="과목">
         <input id="range" placeholder="범위">
         <input id="start" type="time">
         <input id="end" type="time">
-        <button class="btn add" onclick="addItem(['subject','range','start','end'])">추가</button>
+        <button class="btn add">추가</button>
       `;
+      form.querySelector(".add").onclick = () =>
+        addItem({ 과목: subject.value, 범위: range.value, 시작: start.value, 종료: end.value });
     }
 
-    if (currentTab === 'weekend') {
+    if (currentTab === "exam") {
+      form.innerHTML = `
+        <input id="subject" placeholder="과목">
+        <input id="range" placeholder="범위">
+        <input id="date" type="date">
+        <button class="btn add">추가</button>
+      `;
+      form.querySelector(".add").onclick = () =>
+        addItem({ 과목: subject.value, 범위: range.value, 날짜: date.value });
+    }
+
+    if (currentTab === "weekend") {
       form.innerHTML = `
         <input id="academy" placeholder="학원">
         <input id="subject" placeholder="과목">
         <input id="date" type="date">
         <input id="time" type="time">
-        <button class="btn add" onclick="addItem(['academy','subject','date','time'])">추가</button>
+        <button class="btn add">추가</button>
       `;
+      form.querySelector(".add").onclick = () =>
+        addItem({ 학원: academy.value, 과목: subject.value, 날짜: date.value, 시간: time.value });
     }
 
     c.appendChild(form);
   }
 
-  data[currentTab].forEach(item => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <div
+  data[currentTab].forEach((item, i) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.textContent = Object.entries(item)
+      .filter(([k]) => k !== "_id")
+      .map(([k, v]) => `${k}: ${v}`)
+      .join("\n");
+
+    if (currentTab !== "done") {
+      const doneBtn = document.createElement("button");
+      doneBtn.className = "btn done";
+      doneBtn.textContent = "완료";
+      doneBtn.onclick = () => completeItem(i);
+      card.appendChild(doneBtn);
+    }
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "btn delete";
+    delBtn.textContent = "삭제";
+    delBtn.onclick = () => deleteItem(i);
+    card.appendChild(delBtn);
+
+    c.appendChild(card);
+  });
+}
+
+loadData();
+</script>
+
+</body>
+</html>
