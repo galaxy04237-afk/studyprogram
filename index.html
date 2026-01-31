@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <title>지헌이의 갓생살기</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     body {
       margin: 0;
@@ -22,7 +26,6 @@
       display: flex;
       background: white;
       border-bottom: 1px solid #ddd;
-      overflow-x: auto;
     }
     nav button {
       flex: 1;
@@ -47,7 +50,7 @@
       margin-bottom: 12px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.06);
     }
-    input, select {
+    input {
       width: 100%;
       padding: 10px;
       margin-bottom: 8px;
@@ -64,9 +67,6 @@
     .add { background: #5b6cff; color: white; }
     .done { background: #4caf50; color: white; }
     .delete { background: #f44336; color: white; }
-    .item {
-      margin-bottom: 8px;
-    }
   </style>
 </head>
 <body>
@@ -74,51 +74,60 @@
 <header>📚 지헌이의 갓생살기</header>
 
 <nav>
-  <button class="active" onclick="switchTab('homework')">숙제</button>
-  <button onclick="switchTab('study')">공부</button>
-  <button onclick="switchTab('exam')">시험·수행</button>
-  <button onclick="switchTab('weekend')">주말보강</button>
-  <button onclick="switchTab('done')">완료됨</button>
+  <button class="active" onclick="switchTab('homework', this)">숙제</button>
+  <button onclick="switchTab('study', this)">공부</button>
+  <button onclick="switchTab('exam', this)">시험·수행</button>
+  <button onclick="switchTab('weekend', this)">주말보강</button>
+  <button onclick="switchTab('done', this)">완료됨</button>
 </nav>
 
 <div class="container" id="content"></div>
 
 <script>
+/* 🔴 여기에 Supabase 정보 넣기 */
+const SUPABASE_URL = "여기에_URL";
+const SUPABASE_ANON_KEY = "여기에_ANON_KEY";
+
+const supabase = supabaseJs.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
 let currentTab = 'homework';
-let data = JSON.parse(localStorage.getItem('planner')) || {
+let data = {
   homework: [], study: [], exam: [], weekend: [], done: []
 };
 
-function save() {
-  localStorage.setItem('planner', JSON.stringify(data));
+async function loadData() {
+  const { data: rows } = await supabase.from('planner').select('*');
+  data = { homework: [], study: [], exam: [], weekend: [], done: [] };
+  rows.forEach(r => data[r.type].push(r));
+  render();
 }
 
-function switchTab(tab) {
+function switchTab(tab, el) {
   currentTab = tab;
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  el.classList.add('active');
   render();
 }
 
-function addItem(fields) {
-  const item = {};
+async function addItem(fields) {
+  const item = { type: currentTab };
   fields.forEach(f => item[f] = document.getElementById(f).value);
-  data[currentTab].push(item);
-  save();
-  render();
+
+  await supabase.from('planner').insert(item);
+  loadData();
 }
 
-function moveToDone(index) {
-  data.done.push(data[currentTab][index]);
-  data[currentTab].splice(index, 1);
-  save();
-  render();
+async function moveToDone(id) {
+  await supabase.from('planner').update({ type: 'done' }).eq('id', id);
+  loadData();
 }
 
-function deleteItem(index) {
-  data[currentTab].splice(index, 1);
-  save();
-  render();
+async function deleteItem(id) {
+  await supabase.from('planner').delete().eq('id', id);
+  loadData();
 }
 
 function render() {
@@ -126,11 +135,11 @@ function render() {
   c.innerHTML = '';
 
   if (currentTab !== 'done') {
-    const card = document.createElement('div');
-    card.className = 'card';
+    const form = document.createElement('div');
+    form.className = 'card';
 
-    if (currentTab === 'homework') {
-      card.innerHTML = `
+    if (currentTab === 'homework' || currentTab === 'exam') {
+      form.innerHTML = `
         <input id="subject" placeholder="과목">
         <input id="range" placeholder="범위">
         <input id="date" type="date">
@@ -139,7 +148,7 @@ function render() {
     }
 
     if (currentTab === 'study') {
-      card.innerHTML = `
+      form.innerHTML = `
         <input id="subject" placeholder="과목">
         <input id="range" placeholder="범위">
         <input id="start" type="time">
@@ -148,17 +157,8 @@ function render() {
       `;
     }
 
-    if (currentTab === 'exam') {
-      card.innerHTML = `
-        <input id="subject" placeholder="과목">
-        <input id="range" placeholder="범위">
-        <input id="date" type="date">
-        <button class="btn add" onclick="addItem(['subject','range','date'])">추가</button>
-      `;
-    }
-
     if (currentTab === 'weekend') {
-      card.innerHTML = `
+      form.innerHTML = `
         <input id="academy" placeholder="학원">
         <input id="subject" placeholder="과목">
         <input id="date" type="date">
@@ -167,23 +167,11 @@ function render() {
       `;
     }
 
-    c.appendChild(card);
+    c.appendChild(form);
   }
 
-  data[currentTab].forEach((item, i) => {
-    const div = document.createElement('div');
-    div.className = 'card item';
-    div.innerHTML = `
-      <pre>${JSON.stringify(item, null, 2)}</pre>
-      ${currentTab !== 'done' ? `<button class="btn done" onclick="moveToDone(${i})">완료</button>` : ''}
-      <button class="btn delete" onclick="deleteItem(${i})">삭제</button>
-    `;
-    c.appendChild(div);
-  });
-}
-
-render();
-</script>
-
-</body>
-</html>
+  data[currentTab].forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div
