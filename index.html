@@ -5,7 +5,8 @@
   <title>지헌이의 갓생살기</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     body {
@@ -84,6 +85,16 @@
 
 <div class="container" id="content"></div>
 
+<script>
+/* 🔑 Supabase 설정 */
+const SUPABASE_URL = "https://kbddlzcczmjzxgpqgvaj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_57nMVqngDBZ3updYJxnQyA_SBS83Dov";
+
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
 /* 상태 */
 let currentTab = "homework";
 const data = {
@@ -102,15 +113,43 @@ function switchTab(tab, btn) {
   render();
 }
 
+/* Supabase 데이터 불러오기 */
+async function loadData() {
+  const { data: rows, error } = await supabase
+    .from("planner")
+    .select("*")
+    .order("created_at");
 
+  if (error) {
+    alert("Supabase 오류: " + error.message);
+    return;
+  }
+
+  rows.forEach(row => {
+    data[row.category].push({
+      ...row.content,
+      _id: row.id
+    });
+  });
+
+  render();
+}
 
 /* 추가 */
 async function addItem(item) {
-  const { data: row } = await supabase
+  const { data: row, error } = await supabase
     .from("planner")
-    .insert({ category: currentTab, content: item })
+    .insert({
+      category: currentTab,
+      content: item
+    })
     .select()
     .single();
+
+  if (error) {
+    alert("추가 실패: " + error.message);
+    return;
+  }
 
   data[currentTab].push({ ...item, _id: row.id });
   render();
@@ -137,7 +176,7 @@ async function completeItem(index) {
   render();
 }
 
-/* 렌더 */
+/* 화면 렌더링 */
 function render() {
   const c = document.getElementById("content");
   c.innerHTML = "";
@@ -154,7 +193,11 @@ function render() {
         <button class="btn add">추가</button>
       `;
       form.querySelector(".add").onclick = () =>
-        addItem({ 과목: subject.value, 범위: range.value, 마감: date.value });
+        addItem({
+          과목: document.getElementById("subject").value,
+          범위: document.getElementById("range").value,
+          마감: document.getElementById("date").value
+        });
     }
 
     if (currentTab === "study") {
@@ -166,7 +209,12 @@ function render() {
         <button class="btn add">추가</button>
       `;
       form.querySelector(".add").onclick = () =>
-        addItem({ 과목: subject.value, 범위: range.value, 시작: start.value, 종료: end.value });
+        addItem({
+          과목: document.getElementById("subject").value,
+          범위: document.getElementById("range").value,
+          시작: document.getElementById("start").value,
+          종료: document.getElementById("end").value
+        });
     }
 
     if (currentTab === "exam") {
@@ -177,7 +225,11 @@ function render() {
         <button class="btn add">추가</button>
       `;
       form.querySelector(".add").onclick = () =>
-        addItem({ 과목: subject.value, 범위: range.value, 날짜: date.value });
+        addItem({
+          과목: document.getElementById("subject").value,
+          범위: document.getElementById("range").value,
+          날짜: document.getElementById("date").value
+        });
     }
 
     if (currentTab === "weekend") {
@@ -189,7 +241,12 @@ function render() {
         <button class="btn add">추가</button>
       `;
       form.querySelector(".add").onclick = () =>
-        addItem({ 학원: academy.value, 과목: subject.value, 날짜: date.value, 시간: time.value });
+        addItem({
+          학원: document.getElementById("academy").value,
+          과목: document.getElementById("subject").value,
+          날짜: document.getElementById("date").value,
+          시간: document.getElementById("time").value
+        });
     }
 
     c.appendChild(form);
@@ -221,6 +278,7 @@ function render() {
   });
 }
 
+/* 시작 */
 loadData();
 </script>
 
