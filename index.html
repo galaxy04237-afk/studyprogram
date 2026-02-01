@@ -5,7 +5,7 @@
   <title>지헌이의 갓생살기</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Supabase -->
+  <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -22,24 +22,6 @@
       font-size: 20px;
       font-weight: bold;
     }
-    nav {
-      display: flex;
-      background: white;
-      border-bottom: 1px solid #ddd;
-    }
-    nav button {
-      flex: 1;
-      padding: 12px;
-      border: none;
-      background: none;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    nav button.active {
-      color: #5b6cff;
-      font-weight: bold;
-      border-bottom: 2px solid #5b6cff;
-    }
     .container {
       padding: 16px;
     }
@@ -49,7 +31,6 @@
       border-radius: 12px;
       margin-bottom: 12px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-      white-space: pre-line;
     }
     input {
       width: 100%;
@@ -58,228 +39,88 @@
       border-radius: 8px;
       border: 1px solid #ccc;
     }
-    .btn {
-      padding: 8px 12px;
-      border-radius: 8px;
+    button {
+      width: 100%;
+      padding: 10px;
       border: none;
+      border-radius: 8px;
+      background: #5b6cff;
+      color: white;
+      font-size: 16px;
       cursor: pointer;
-      margin-right: 6px;
-      margin-top: 6px;
     }
-    .add { background: #5b6cff; color: white; }
-    .done { background: #4caf50; color: white; }
-    .delete { background: #f44336; color: white; }
   </style>
 </head>
 <body>
 
 <header>📚 지헌이의 갓생살기</header>
 
-<nav>
-  <button class="active" onclick="switchTab('homework', this)">숙제</button>
-  <button onclick="switchTab('study', this)">공부</button>
-  <button onclick="switchTab('exam', this)">시험·수행</button>
-  <button onclick="switchTab('weekend', this)">주말보강</button>
-  <button onclick="switchTab('done', this)">완료됨</button>
-</nav>
+<div class="container">
+  <div class="card">
+    <input id="subject" placeholder="과목">
+    <input id="content" placeholder="내용">
+    <button onclick="addItem()">추가</button>
+  </div>
 
-<div class="container" id="content"></div>
+  <div id="list"></div>
+</div>
 
 <script>
-/* 🔑 Supabase 설정 */
-const SUPABASE_URL = "https://kbddlzcczmjzxgpqgvaj.supabase.co";
+  /* 🔑 Supabase 설정 (여기만 수정) */
+  const SUPABASE_URL = "https://kbddlzcczmjzxgpqgvaj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_57nMVqngDBZ3updYJxnQyA_SBS83Dov";
 
-const supabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+  const supabase = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
 
-/* 상태 */
-let currentTab = "homework";
-const data = {
-  homework: [],
-  study: [],
-  exam: [],
-  weekend: [],
-  done: []
-};
+  async function addItem() {
+    const subject = document.getElementById("subject").value;
+    const content = document.getElementById("content").value;
 
-/* 탭 전환 */
-function switchTab(tab, btn) {
-  currentTab = tab;
-  document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-  render();
-}
+    if (!subject || !content) {
+      alert("둘 다 입력하세요");
+      return;
+    }
 
-/* Supabase 데이터 불러오기 */
-async function loadData() {
-  const { data: rows, error } = await supabase
-    .from("planner")
-    .select("*")
-    .order("created_at");
+    const { error } = await supabase
+      .from("planner")
+      .insert({
+        subject,
+        content
+      });
 
-  if (error) {
-    alert("Supabase 오류: " + error.message);
-    return;
+    if (error) {
+      alert("에러: " + error.message);
+    } else {
+      alert("추가 성공!");
+      document.getElementById("subject").value = "";
+      document.getElementById("content").value = "";
+      loadItems();
+    }
   }
 
-  rows.forEach(row => {
-    data[row.category].push({
-      ...row.content,
-      _id: row.id
+  async function loadItems() {
+    const { data, error } = await supabase
+      .from("planner")
+      .select("*")
+      .order("id", { ascending: false });
+
+    if (error) return;
+
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+
+    data.forEach(row => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.textContent = `${row.subject} - ${row.content}`;
+      list.appendChild(div);
     });
-  });
-
-  render();
-}
-
-/* 추가 */
-async function addItem(item) {
-  const { data: row, error } = await supabase
-    .from("planner")
-    .insert({
-      category: currentTab,
-      content: item
-    })
-    .select()
-    .single();
-
-  if (error) {
-    alert("추가 실패: " + error.message);
-    return;
   }
 
-  data[currentTab].push({ ...item, _id: row.id });
-  render();
-}
-
-/* 삭제 */
-async function deleteItem(index) {
-  const id = data[currentTab][index]._id;
-  await supabase.from("planner").delete().eq("id", id);
-  data[currentTab].splice(index, 1);
-  render();
-}
-
-/* 완료 */
-async function completeItem(index) {
-  const item = data[currentTab][index];
-  await supabase.from("planner").delete().eq("id", item._id);
-  await supabase.from("planner").insert({
-    category: "done",
-    content: item
-  });
-  data.done.push(item);
-  data[currentTab].splice(index, 1);
-  render();
-}
-
-/* 화면 렌더링 */
-function render() {
-  const c = document.getElementById("content");
-  c.innerHTML = "";
-
-  if (currentTab !== "done") {
-    const form = document.createElement("div");
-    form.className = "card";
-
-    if (currentTab === "homework") {
-      form.innerHTML = `
-        <input id="subject" placeholder="과목">
-        <input id="range" placeholder="범위">
-        <input id="date" type="date">
-        <button class="btn add">추가</button>
-      `;
-      form.querySelector(".add").onclick = () =>
-        addItem({
-          과목: document.getElementById("subject").value,
-          범위: document.getElementById("range").value,
-          마감: document.getElementById("date").value
-        });
-    }
-
-    if (currentTab === "study") {
-      form.innerHTML = `
-        <input id="subject" placeholder="과목">
-        <input id="range" placeholder="범위">
-        <input id="start" type="time">
-        <input id="end" type="time">
-        <button class="btn add">추가</button>
-      `;
-      form.querySelector(".add").onclick = () =>
-        addItem({
-          과목: document.getElementById("subject").value,
-          범위: document.getElementById("range").value,
-          시작: document.getElementById("start").value,
-          종료: document.getElementById("end").value
-        });
-    }
-
-    if (currentTab === "exam") {
-      form.innerHTML = `
-        <input id="subject" placeholder="과목">
-        <input id="range" placeholder="범위">
-        <input id="date" type="date">
-        <button class="btn add">추가</button>
-      `;
-      form.querySelector(".add").onclick = () =>
-        addItem({
-          과목: document.getElementById("subject").value,
-          범위: document.getElementById("range").value,
-          날짜: document.getElementById("date").value
-        });
-    }
-
-    if (currentTab === "weekend") {
-      form.innerHTML = `
-        <input id="academy" placeholder="학원">
-        <input id="subject" placeholder="과목">
-        <input id="date" type="date">
-        <input id="time" type="time">
-        <button class="btn add">추가</button>
-      `;
-      form.querySelector(".add").onclick = () =>
-        addItem({
-          학원: document.getElementById("academy").value,
-          과목: document.getElementById("subject").value,
-          날짜: document.getElementById("date").value,
-          시간: document.getElementById("time").value
-        });
-    }
-
-    c.appendChild(form);
-  }
-
-  data[currentTab].forEach((item, i) => {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.textContent = Object.entries(item)
-      .filter(([k]) => k !== "_id")
-      .map(([k, v]) => `${k}: ${v}`)
-      .join("\n");
-
-    if (currentTab !== "done") {
-      const doneBtn = document.createElement("button");
-      doneBtn.className = "btn done";
-      doneBtn.textContent = "완료";
-      doneBtn.onclick = () => completeItem(i);
-      card.appendChild(doneBtn);
-    }
-
-    const delBtn = document.createElement("button");
-    delBtn.className = "btn delete";
-    delBtn.textContent = "삭제";
-    delBtn.onclick = () => deleteItem(i);
-    card.appendChild(delBtn);
-
-    c.appendChild(card);
-  });
-}
-
-/* 시작 */
-loadData();
+  loadItems();
 </script>
 
 </body>
