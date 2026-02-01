@@ -5,8 +5,7 @@
   <title>지헌이의 갓생살기</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Supabase CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
 
   <style>
     body {
@@ -85,16 +84,6 @@
 
 <div class="container" id="content"></div>
 
-<script>
-/* 🔑 Supabase 설정 */
-const SUPABASE_URL = "https://kbddlzcczmjzxgpqgvaj.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_57nMVqngDBZ3updYJxnQyA_SBS83Dov";
-
-const supabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
-
 /* 상태 */
 let currentTab = "homework";
 const data = {
@@ -113,18 +102,7 @@ function switchTab(tab, btn) {
   render();
 }
 
-/* Supabase 로드 */
-async function loadData() {
-  const { data: rows } = await supabase
-    .from("planner")
-    .select("*")
-    .order("created_at");
 
-  rows.forEach(row => {
-    data[row.category].push({ ...row.content, _id: row.id });
-  });
-  render();
-}
 
 /* 추가 */
 async function addItem(item) {
